@@ -281,7 +281,7 @@
 
                  // Create email with the YouTube link and sound name
                 const subject = encodeURIComponent('New Sound Request for QuickDraw');
-                const body = encodeURIComponent('NEW SOUND (request) ALERT!%0ASound Name: ${encodeURIComponent(soundName)}%0AYouTube Link: ${encodeURIComponent(youtubeUrl)}%0A%0ADo you see how she labors...';
+                const body = `NEW SOUND (request) ALERT!%0ASound Name: ${encodeURIComponent(soundName)}%0AYouTube Link: ${encodeURIComponent(youtubeUrl)}%0A%0ADo you see how she labors...`;                
                 const mailtoLink = `mailto:tahliavayser@gmail.com?subject=${subject}&body=${body}`;
                 
                 // Open email client
