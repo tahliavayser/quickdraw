@@ -120,14 +120,8 @@
             text-align: center;
             color: #3E2723;
             font-weight: 500;
-            cursor: pointer;
             padding: 12px;
-            transition: all 0.3s ease;
             border-radius: 6px;
-        }
-
-        .upload-label:hover {
-            background: rgba(93, 64, 55, 0.1);
         }
 
         .file-input {
@@ -176,12 +170,12 @@
         </div>
 
         <div class="upload-section">
-            <label for="audioFile" class="upload-label">
-                Add New Sound Effect
-            </label>
-            <input type="file" id="audioFile" class="file-input" accept="audio/*">
-            <input type="text" id="soundName" class="sound-name-input" placeholder="Sound name (e.g., 'Explosion', 'Bell')">
-            <button id="addSound" class="add-button">Add Sound</button>
+            <div class="upload-label">
+                Want More Sounds?
+            </div>
+            <input type="text" id="youtubeLink" class="sound-name-input" placeholder="Paste YouTube URL here">
+            <input type="text" id="soundName" class="sound-name-input" placeholder="Sound name">
+            <button id="addSound" class="add-button">Sure, Make Your Girlfriend Do It</button>
         </div>
     </div>
 
@@ -190,6 +184,7 @@
             constructor() {
                 this.sounds = new Map();
                 this.audioElements = new Map(); // Store audio elements for instant replay
+                this.currentlyPlaying = null; // Track currently playing audio
                 this.audioContext = null;
                 this.greetings = [
                     'Hello, Cecil',
@@ -229,15 +224,19 @@
             }
 
             setupEventListeners() {
-                const fileInput = document.getElementById('audioFile');
+                const youtubeLinkInput = document.getElementById('youtubeLink');
                 const addButton = document.getElementById('addSound');
                 const soundNameInput = document.getElementById('soundName');
 
-                fileInput.addEventListener('change', this.handleFileSelect.bind(this));
-                addButton.addEventListener('click', this.addCustomSound.bind(this));
+                addButton.addEventListener('click', this.addYouTubeSound.bind(this));
                 soundNameInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') {
-                        this.addCustomSound();
+                        this.addYouTubeSound();
+                    }
+                });
+                youtubeLinkInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.addYouTubeSound();
                     }
                 });
             }
@@ -262,29 +261,14 @@
             loadStoredSounds() {
             }
 
-            handleFileSelect(event) {
-                const file = event.target.files[0];
-                if (file && file.type.startsWith('audio/')) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const audioData = e.target.result;
-                        const soundName = document.getElementById('soundName').value || file.name;
-                        this.sounds.set(soundName, audioData);
-                        console.log('Audio file loaded:', soundName);
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    alert('Please select a valid audio file');
-                }
-            }
-
-            addCustomSound() {
-                const fileInput = document.getElementById('audioFile');
+            addYouTubeSound() {
+                const youtubeLinkInput = document.getElementById('youtubeLink');
                 const soundNameInput = document.getElementById('soundName');
+                const youtubeUrl = youtubeLinkInput.value.trim();
                 const soundName = soundNameInput.value.trim();
 
-                if (!fileInput.files[0]) {
-                    alert('Please select an audio file first');
+                if (!youtubeUrl) {
+                    alert('Please paste a YouTube URL first');
                     return;
                 }
 
@@ -293,17 +277,17 @@
                     return;
                 }
 
-                const file = fileInput.files[0];
-                const reader = new FileReader();
+                 // Create email with the YouTube link and sound name
+                const subject = encodeURIComponent('New Sound Request for QuickDraw');
+                const body = encodeURIComponent(`Hey!\n\nSomeone wants to add a new sound to QuickDraw:\n\nSound Name: ${soundName}\nYouTube Link: ${youtubeUrl}\n\nDo you see how she labors...`);
+                const mailtoLink = `mailto:tahliavayser@gmail.com?subject=${subject}&body=${body}`;
                 
-                reader.onload = (e) => {
-                    const audioData = e.target.result;
-                    this.createSoundButton(soundName, audioData);
-                    fileInput.value = '';
-                    soundNameInput.value = '';
-                };
+                // Open email client
+                window.open(mailtoLink);
                 
-                reader.readAsDataURL(file);
+                // Clear the inputs
+                youtubeLinkInput.value = '';
+                soundNameInput.value = '';
             }
 
             createSoundButton(name, audioUrl) {
@@ -326,6 +310,15 @@
 
             async playSound(soundName, buttonElement) {
                 try {
+                    // Stop any currently playing audio first
+                    if (this.currentlyPlaying && this.currentlyPlaying !== soundName) {
+                        const currentAudio = this.audioElements.get(this.currentlyPlaying);
+                        if (currentAudio) {
+                            currentAudio.pause();
+                            currentAudio.currentTime = 0;
+                        }
+                    }
+
                     // Add visual feedback
                     buttonElement.classList.add('playing');
                     setTimeout(() => {
@@ -340,12 +333,22 @@
                         audio.pause();
                         audio.currentTime = 0;
                         
+                        // Update currently playing tracker
+                        this.currentlyPlaying = soundName;
+                        
                         // Play the sound immediately
                         const playPromise = audio.play();
                         
                         if (playPromise !== undefined) {
                             await playPromise;
                         }
+
+                        // Clear the currently playing tracker when audio ends
+                        audio.addEventListener('ended', () => {
+                            if (this.currentlyPlaying === soundName) {
+                                this.currentlyPlaying = null;
+                            }
+                        }, { once: true });
                     }
                 } catch (error) {
                     console.warn('Could not play audio:', error);
