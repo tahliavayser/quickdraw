@@ -196,7 +196,9 @@
                     'Hello, Cecil Stinkybreath',
                     'Greetings, Becil',
                     'Howdy, Cecil Pecil!',
-                    'Seasalt!'
+                    'Seasalt!',
+                    'Hey baby girl',
+                    'He loves #women in stem'
                 ];
                 this.init();
             }
@@ -268,18 +270,18 @@
                 const soundName = soundNameInput.value.trim();
 
                 if (!youtubeUrl) {
-                    alert('Please paste a YouTube URL first');
+                    alert('Where is your URL');
                     return;
                 }
 
                 if (!soundName) {
-                    alert('Please enter a name for the sound');
+                    alert('Name! That! Sound!');
                     return;
                 }
 
                  // Create email with the YouTube link and sound name
                 const subject = encodeURIComponent('New Sound Request for QuickDraw');
-                const body = encodeURIComponent(`NEW SOUND (request) ALERT!\nSound Name: ${soundName}\nYouTube Link: ${youtubeUrl}\n\nDo you see how she labors...`);
+                const body = encodeURIComponent(`NEW SOUND (request) ALERT!%0ASound Name: ${encodeURIComponent(soundName)}%0AYouTube Link: ${encodeURIComponent(youtubeUrl)}%0A%0ADo you see how she labors...';
                 const mailtoLink = `mailto:tahliavayser@gmail.com?subject=${subject}&body=${body}`;
                 
                 // Open email client
