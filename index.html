@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickDraw Sound Effects</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #3E2723;
+            min-height: 100vh;
+            padding: 20px;
+            user-select: none;
+        }
+
+        .container {
+            max-width: 420px;
+            margin: 0 auto;
+            background: #FAF0E6;
+            border-radius: 12px;
+            padding: 25px 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            border: 2px solid #5D4037;
+        }
+
+        h1 {
+            text-align: center;
+            color: #3E2723;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 25px;
+        }
+
+        .sound-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .sound-button {
+            background: #5D4037;
+            border: 2px solid #4E342E;
+            border-radius: 8px;
+            padding: 15px 10px;
+            color: #FAF0E6;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .sound-button:hover {
+            background: #6D4C41;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .sound-button:active {
+            transform: scale(0.98);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .sound-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(250, 240, 230, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+        }
+
+        .sound-button.playing::before {
+            width: 80px;
+            height: 80px;
+            animation: ripple 0.6s ease-out;
+        }
+
+        @keyframes ripple {
+            from {
+                width: 0;
+                height: 0;
+                opacity: 1;
+            }
+            to {
+                width: 80px;
+                height: 80px;
+                opacity: 0;
+            }
+        }
+
+        .upload-section {
+            margin-top: 25px;
+            padding: 20px;
+            background: rgba(93, 64, 55, 0.1);
+            border-radius: 8px;
+            border: 2px dashed #8D6E63;
+        }
+
+        .upload-label {
+            display: block;
+            text-align: center;
+            color: #3E2723;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 12px;
+            transition: all 0.3s ease;
+            border-radius: 6px;
+        }
+
+        .upload-label:hover {
+            background: rgba(93, 64, 55, 0.1);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .sound-name-input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #8D6E63;
+            border-radius: 6px;
+            background: #FAF0E6;
+            color: #3E2723;
+            font-size: 14px;
+        }
+
+        .sound-name-input::placeholder {
+            color: #8D6E63;
+        }
+
+        .add-button {
+            width: 100%;
+            padding: 12px;
+            background: #5D4037;
+            border: 2px solid #4E342E;
+            border-radius: 6px;
+            color: #FAF0E6;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .add-button:hover {
+            background: #6D4C41;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="appTitle">QuickDraw</h1>
+        
+        <div class="sound-grid" id="soundGrid">
+            <!-- Sound buttons will be added here -->
+        </div>
+
+        <div class="upload-section">
+            <label for="audioFile" class="upload-label">
+                Add New Sound Effect
+            </label>
+            <input type="file" id="audioFile" class="file-input" accept="audio/*">
+            <input type="text" id="soundName" class="sound-name-input" placeholder="Sound name (e.g., 'Explosion', 'Bell')">
+            <button id="addSound" class="add-button">Add Sound</button>
+        </div>
+    </div>
+
+    <script>
+        class SoundEffectsApp {
+            constructor() {
+                this.sounds = new Map();
+                this.audioElements = new Map(); // Store audio elements for instant replay
+                this.audioContext = null;
+                this.greetings = [
+                    'Hello, Cecil',
+                    'Welcome Back, Cecil',
+                    'Back so soon?',
+                    'Hey freak',
+                    'Does this count as bullying?',
+                    'Hello, Cecil Bootycheeks',
+                    'Hello, Cecil Stinkybreath',
+                    'Greetings, Becil',
+                    'Howdy, Cecil Pecil!',
+                    'Seasalt!'
+                ];
+                this.init();
+            }
+
+            async init() {
+                document.addEventListener('click', this.initAudioContext.bind(this), { once: true });
+                this.setRandomGreeting();
+                this.setupEventListeners();
+                this.loadDefaultSounds();
+                this.loadStoredSounds();
+            }
+
+            setRandomGreeting() {
+                const titleElement = document.getElementById('appTitle');
+                const randomGreeting = this.greetings[Math.floor(Math.random() * this.greetings.length)];
+                titleElement.textContent = randomGreeting;
+            }
+
+            async initAudioContext() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (error) {
+                    console.warn('Audio context not supported');
+                }
+            }
+
+            setupEventListeners() {
+                const fileInput = document.getElementById('audioFile');
+                const addButton = document.getElementById('addSound');
+                const soundNameInput = document.getElementById('soundName');
+
+                fileInput.addEventListener('change', this.handleFileSelect.bind(this));
+                addButton.addEventListener('click', this.addCustomSound.bind(this));
+                soundNameInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.addCustomSound();
+                    }
+                });
+            }
+
+            loadDefaultSounds() {
+                const defaultSounds = [
+                    { name: 'Racks', url: './sounds/Racks.m4a' },
+                    { name: 'Womp Womp', url: './sounds/Womp Womp.mp4' },
+                    { name: 'Kaboom', url: './sounds/Kaboom.mp4' },
+                    { name: 'Damage', url: './sounds/Damage.mp4' },
+                    { name: 'Vine Boom', url: './sounds/Vine Boom.mp4' },
+                    { name: 'Hell Naw', url: './sounds/Hell Naw.mp4' },
+                    { name: 'Well Well Well', url: './sounds/Well Well Well.mp4' },
+                    { name: 'Parade Inside My City', url: './sounds/Parade Inside My City.mp3' }
+                ];
+
+                defaultSounds.forEach(sound => {
+                    this.createSoundButton(sound.name, sound.url);
+                });
+            }
+
+            loadStoredSounds() {
+            }
+
+            handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (file && file.type.startsWith('audio/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const audioData = e.target.result;
+                        const soundName = document.getElementById('soundName').value || file.name;
+                        this.sounds.set(soundName, audioData);
+                        console.log('Audio file loaded:', soundName);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    alert('Please select a valid audio file');
+                }
+            }
+
+            addCustomSound() {
+                const fileInput = document.getElementById('audioFile');
+                const soundNameInput = document.getElementById('soundName');
+                const soundName = soundNameInput.value.trim();
+
+                if (!fileInput.files[0]) {
+                    alert('Please select an audio file first');
+                    return;
+                }
+
+                if (!soundName) {
+                    alert('Please enter a name for the sound');
+                    return;
+                }
+
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = (e) => {
+                    const audioData = e.target.result;
+                    this.createSoundButton(soundName, audioData);
+                    fileInput.value = '';
+                    soundNameInput.value = '';
+                };
+                
+                reader.readAsDataURL(file);
+            }
+
+            createSoundButton(name, audioUrl) {
+                const soundGrid = document.getElementById('soundGrid');
+                const button = document.createElement('button');
+                
+                button.className = 'sound-button';
+                button.textContent = name;
+                
+                // Pre-load audio element for instant playback
+                const audio = new Audio(audioUrl);
+                audio.preload = 'auto';
+                audio.volume = 0.8;
+                this.audioElements.set(name, audio);
+                
+                button.addEventListener('click', () => this.playSound(name, button));
+                
+                soundGrid.appendChild(button);
+            }
+
+            async playSound(soundName, buttonElement) {
+                try {
+                    // Add visual feedback
+                    buttonElement.classList.add('playing');
+                    setTimeout(() => {
+                        buttonElement.classList.remove('playing');
+                    }, 300);
+
+                    // Get the pre-loaded audio element
+                    const audio = this.audioElements.get(soundName);
+                    
+                    if (audio) {
+                        // Stop and reset the audio if it's currently playing
+                        audio.pause();
+                        audio.currentTime = 0;
+                        
+                        // Play the sound immediately
+                        const playPromise = audio.play();
+                        
+                        if (playPromise !== undefined) {
+                            await playPromise;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Could not play audio:', error);
+                    this.vibrate();
+                }
+            }
+
+            vibrate() {
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(50);
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new SoundEffectsApp();
+        });
+    </script>
+</body>
+</html>
